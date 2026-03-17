@@ -1,21 +1,39 @@
 import { create } from "zustand";
 import type { ChatMessage, Conversation, AssistantAction, Generation } from "@/types";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+/** Normalize raw API messages to include all fields ChatMessage expects. */
+function normalizeMessages(raw: any[]): ChatMessage[] {
+  return (raw || []).map((m: any, i: number) => ({
+    id: m.id || `api-${i}-${Date.now()}`,
+    role: m.role || "assistant",
+    content: m.content || "",
+    actions: m.actions || [],
+    generation: m.generation || null,
+    timestamp: m.timestamp || new Date().toISOString(),
+  }));
+}
+
 interface ChatStore {
   conversations: Conversation[];
   activeConversationId: string | null;
   streamingContent: string;
   isStreaming: boolean;
+  statusMessage: string;
+  isProcessing: boolean;
 
   setConversations: (convos: Conversation[]) => void;
   setActiveConversation: (id: string | null) => void;
   startNewConversation: () => void;
+  loadSongConversations: (songId: string) => Promise<void>;
 
   addUserMessage: (content: string) => void;
   appendStreamChunk: (chunk: string, done: boolean) => void;
   addAssistantAction: (action: AssistantAction) => void;
   addGeneration: (generation: Generation) => void;
   onConversationStarted: (id: string, title: string) => void;
+  setStatus: (status: string, message: string) => void;
 
   getActiveConversation: () => Conversation | null;
 }
@@ -25,12 +43,57 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   activeConversationId: null,
   streamingContent: "",
   isStreaming: false,
+  statusMessage: "",
+  isProcessing: false,
 
   setConversations: (conversations) => set({ conversations }),
-  setActiveConversation: (id) => set({ activeConversationId: id }),
+
+  setActiveConversation: (id) => {
+    if (!id) { set({ activeConversationId: null }); return; }
+    const state = get();
+    const found = state.conversations.find((c) => c.id === id);
+    if (found) {
+      set({ activeConversationId: id });
+    } else {
+      // Conversation not in local store — fetch from API
+      set({ activeConversationId: id });
+      fetch(`${API_BASE}/api/conversations/${id}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((raw) => {
+          if (!raw) return;
+          const conv = { ...raw, messages: normalizeMessages(raw.messages) };
+          set((s) => ({
+            conversations: [conv, ...s.conversations.filter((c) => c.id !== id)],
+          }));
+        })
+        .catch(() => { /* silent */ });
+    }
+  },
 
   startNewConversation: () => {
-    set({ activeConversationId: null, streamingContent: "", isStreaming: false });
+    set({ activeConversationId: null, streamingContent: "", isStreaming: false, statusMessage: "", isProcessing: false });
+  },
+
+  loadSongConversations: async (songId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/songs/${songId}/conversations`);
+      if (res.ok) {
+        const raw = await res.json();
+        const fromApi = raw.map((c: any) => ({
+          ...c,
+          messages: normalizeMessages(c.messages),
+        }));
+        // Merge: API conversations take precedence, but keep local-only
+        // conversations that aren't in the API response (e.g., just created)
+        set((state) => {
+          const apiIds = new Set(fromApi.map((c: Conversation) => c.id));
+          const localOnly = state.conversations.filter((c) => !apiIds.has(c.id));
+          return { conversations: [...fromApi, ...localOnly] };
+        });
+      }
+    } catch {
+      // silent — conversations will be empty, which is safe
+    }
   },
 
   addUserMessage: (content) => {
@@ -49,8 +112,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (idx >= 0) {
         convos[idx] = { ...convos[idx], messages: [...convos[idx].messages, msg] };
       }
-      return { conversations: convos };
+      return { conversations: convos, isProcessing: true, statusMessage: "Sending..." };
     });
+  },
+
+  setStatus: (status, message) => {
+    if (status === "done") {
+      set({ statusMessage: "", isProcessing: false });
+    } else {
+      set({ statusMessage: message, isProcessing: true });
+    }
   },
 
   onConversationStarted: (id, title) => {

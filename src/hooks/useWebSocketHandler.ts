@@ -11,6 +11,7 @@ export function useWebSocketHandler() {
     appendStreamChunk,
     addAssistantAction,
     addGeneration,
+    setStatus,
   } = useChatStore();
 
   useEffect(() => {
@@ -28,11 +29,15 @@ export function useWebSocketHandler() {
         case "assistant_action":
           addAssistantAction(data.action);
           break;
+        case "assistant_status":
+          setStatus(data.status, data.message);
+          break;
         case "generation_created":
           addGeneration(data.generation);
           break;
         case "error":
           console.error("Backend error:", data.message);
+          setStatus("done", "");
           break;
       }
     });

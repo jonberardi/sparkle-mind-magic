@@ -34,7 +34,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         </div>
 
         {/* Action Cards */}
-        {message.actions.length > 0 && (
+        {message.actions?.length > 0 && (
           <div className="space-y-1.5 w-full">
             {message.actions.map((action, i) => (
               <ActionCard key={i} action={action} />

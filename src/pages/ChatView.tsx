@@ -1,12 +1,18 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { Send, Plus } from "lucide-react";
+import { Send, Plus, Loader2, Layers, X } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { useWebSocketStore } from "@/stores/websocketStore";
+import { useWorkflowStore } from "@/stores/workflowStore";
 import { ChatMessage, StreamingMessage } from "@/components/ChatMessage";
+import { IndividualContextPanel } from "@/components/IndividualContextPanel";
+import { IndividualExplorePanel } from "@/components/IndividualExplorePanel";
+import { ContextBadges } from "@/components/ContextBadges";
 
 export default function ChatView() {
   const [input, setInput] = useState("");
+  const [showExplore, setShowExplore] = useState(false);
+  const [explorePrompt, setExplorePrompt] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -14,20 +20,28 @@ export default function ChatView() {
     activeConversationId,
     streamingContent,
     isStreaming,
+    isProcessing,
+    statusMessage,
     addUserMessage,
     startNewConversation,
     getActiveConversation,
   } = useChatStore();
-  const { send } = useWebSocketStore();
+  const { send, abletonConnected } = useWebSocketStore();
   const { activeProfileId, profiles } = useProfileStore();
+  const { getWorkflowContext, setMode, individualSettings } = useWorkflowStore();
 
   const conversation = getActiveConversation();
   const messages = conversation?.messages || [];
   const activeProfile = profiles.find((p) => p.id === activeProfileId);
 
+  // Ensure individual mode when on this page
+  useEffect(() => {
+    setMode("individual");
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length, streamingContent]);
+  }, [messages.length, streamingContent, statusMessage]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -39,9 +53,17 @@ export default function ChatView() {
       conversation_id: activeConversationId,
       content: text,
       style_profile_id: activeProfileId || "default",
+      workflow_context: getWorkflowContext(),
     });
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+  };
+
+  const handleExplore = () => {
+    const text = input.trim();
+    if (!text) return;
+    setExplorePrompt(text);
+    setShowExplore(true);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -96,10 +118,22 @@ export default function ChatView() {
           <ChatMessage key={msg.id} message={msg} />
         ))}
         {isStreaming && <StreamingMessage content={streamingContent} />}
+        {isProcessing && !isStreaming && statusMessage && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-card border border-border rounded-bl-sm">
+              <Loader2 size={14} className="animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">{statusMessage}</span>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Context Panel — Individual mode settings */}
+      <IndividualContextPanel />
 
       {/* Input */}
       <div className="px-6 py-4 border-t border-border shrink-0">
+        <ContextBadges />
         <div className="flex items-end gap-2 bg-input rounded-lg border border-border focus-within:ring-1 focus-within:ring-ring px-3 py-2">
           <textarea
             ref={textareaRef}
@@ -110,13 +144,37 @@ export default function ChatView() {
             rows={1}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none max-h-[120px]"
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
-            className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
-          >
-            <Send size={16} />
-          </button>
+          {(isStreaming || isProcessing) ? (
+            <button
+              onClick={() => {
+                send({ type: "abort" });
+                useChatStore.getState().setStatus("done", "");
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shrink-0 text-xs font-medium"
+            >
+              <X size={14} />
+              Stop
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleExplore}
+                disabled={!input.trim()}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors shrink-0 text-[11px]"
+                title="Generate 3 variations to preview before sending"
+              >
+                <Layers size={14} />
+                Explore
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="p-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+              >
+                <Send size={16} />
+              </button>
+            </>
+          )}
         </div>
         {activeProfile && (
           <p className="text-[11px] text-muted-foreground mt-1.5 px-1">
@@ -124,6 +182,16 @@ export default function ChatView() {
           </p>
         )}
       </div>
+
+      {/* Explore Panel overlay */}
+      {showExplore && (
+        <IndividualExplorePanel
+          prompt={explorePrompt}
+          settings={individualSettings}
+          onClose={() => setShowExplore(false)}
+          onSent={() => { setShowExplore(false); setInput(""); }}
+        />
+      )}
     </div>
   );
 }
