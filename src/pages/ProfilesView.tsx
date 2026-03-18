@@ -31,7 +31,7 @@ class SafeRender extends Component<{ children: ReactNode }, { error: string | nu
   }
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 const VOICING_STYLES = ["spread", "tight", "rootless", "shell"] as const;
 const CHORD_EXTENSIONS = ["triads", "7ths", "9ths+", "13ths+"] as const;
@@ -187,7 +187,7 @@ export default function ProfilesView() {
   const [interviewDescription, setInterviewDescription] = useState("");
 
   const fetchProfiles = useCallback(() => {
-    fetch(`${API_URL}/api/profiles`)
+    fetch(`${API_BASE}/api/profiles`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setProfiles(data);
@@ -196,7 +196,7 @@ export default function ProfilesView() {
   }, [setProfiles]);
 
   const fetchStyleWorlds = useCallback(() => {
-    fetch(`${API_URL}/api/style-worlds`)
+    fetch(`${API_BASE}/api/style-worlds`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
@@ -222,7 +222,7 @@ export default function ProfilesView() {
 
   const handleDuplicate = async (profile: StyleProfile) => {
     try {
-      const res = await fetch(`${API_URL}/api/profiles/duplicate`, {
+      const res = await fetch(`${API_BASE}/api/profiles/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source_id: profile.id, new_name: `${profile.name} (Copy)` }),
@@ -238,7 +238,7 @@ export default function ProfilesView() {
   const confirmDeleteProfile = async () => {
     if (!pendingDeleteProfileId) return;
     try {
-      const res = await fetch(`${API_URL}/api/profiles/${pendingDeleteProfileId}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/api/profiles/${pendingDeleteProfileId}`, { method: "DELETE" });
       if (res.ok) {
         fetchProfiles();
         if (editingId === pendingDeleteProfileId) {
@@ -276,7 +276,7 @@ export default function ProfilesView() {
     if (!editingId || !editState) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/api/profiles/${editingId}`, {
+      const res = await fetch(`${API_BASE}/api/profiles/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

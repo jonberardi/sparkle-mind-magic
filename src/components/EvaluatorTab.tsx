@@ -4,7 +4,7 @@ import type { EvaluatorConfig } from "@/types";
 import { EVALUATION_DIMENSIONS } from "@/types";
 import { cn } from "@/lib/utils";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export function EvaluatorTab() {
   const [config, setConfig] = useState<EvaluatorConfig | null>(null);
@@ -17,7 +17,7 @@ export function EvaluatorTab() {
 
   const fetchConfig = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/evaluator/config`);
+      const res = await fetch(`${API_BASE}/api/evaluator/config`);
       if (res.ok) {
         const data = await res.json();
         setConfig(data);
@@ -35,7 +35,7 @@ export function EvaluatorTab() {
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch(`${API_URL}/api/evaluator/config`, {
+      const res = await fetch(`${API_BASE}/api/evaluator/config`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -60,7 +60,7 @@ export function EvaluatorTab() {
   const reset = async () => {
     if (!confirm("Reset evaluator to default settings? This will overwrite your custom prompt and weights.")) return;
     try {
-      const res = await fetch(`${API_URL}/api/evaluator/config/reset`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/evaluator/config/reset`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setConfig(data);

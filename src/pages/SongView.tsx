@@ -31,7 +31,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import type { Song, SongSection, ChordEntry, Generation } from "@/types";
 import { STYLE_WORLD_LABELS } from "@/types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export default function SongView() {
   const { songId } = useParams<{ songId: string }>();

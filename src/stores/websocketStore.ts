@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { ConnectionStatus, SessionState } from "@/types";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
+import { WS_BASE } from "@/lib/api";
+const WS_URL = WS_BASE;
 
 interface WebSocketStore {
   ws: WebSocket | null;

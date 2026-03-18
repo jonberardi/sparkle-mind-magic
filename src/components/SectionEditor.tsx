@@ -11,7 +11,7 @@ import { previewProgression } from "@/lib/chordPreview";
 import { useSessionStore } from "@/stores/sessionStore";
 import { InheritanceBadge } from "./InheritanceBadge";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 interface SectionEditorProps {
   open: boolean;

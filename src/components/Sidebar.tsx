@@ -5,6 +5,7 @@ import { useWebSocketStore } from "@/stores/websocketStore";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { cn } from "@/lib/utils";
+import { API_BASE } from "@/lib/api";
 
 const navItems = [
   { to: "/", label: "Quick Create", icon: MessageSquare },
@@ -43,7 +44,7 @@ export function Sidebar() {
 
   // Fetch all profiles on mount so the selector is always populated
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/profiles`)
+    fetch(`${API_BASE}/api/profiles`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {

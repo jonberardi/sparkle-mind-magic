@@ -13,6 +13,7 @@ import { TRACK_ROLES, HUMANIZE_PRESETS } from "@/types";
 import type { GenerationWorkflow } from "./WorkflowPicker";
 import { useSessionStore } from "@/stores/sessionStore";
 import { StyleSourceSelector, type StyleSourceMode } from "./StyleSourceSelector";
+import { API_BASE } from "@/lib/api";
 
 // ── Option definitions ──
 
@@ -260,8 +261,6 @@ export function GenerationControls({
   const session = useSessionStore((s) => s.session);
   const setSession = useSessionStore((s) => s.setSession);
   const midiTracks = session?.tracks.filter((t) => t.type === "midi") ?? [];
-
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   const refreshTracks = async () => {
     setRefreshing(true);

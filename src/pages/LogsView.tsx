@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, RefreshCw, Trash2, ArrowDown, Pause, Play, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 const SOURCE_FILTERS = [
   { value: "agent.loop", label: "Agent" },
@@ -36,7 +35,7 @@ export default function LogsView() {
       if (levelFilter !== "ALL") params.set("level", levelFilter);
       if (search) params.set("search", search);
 
-      const res = await fetch(`${API_URL}/api/dev/logs?${params}`);
+      const res = await fetch(`${API_BASE}/api/dev/logs?${params}`);
       const data = await res.json();
       setLines(data.lines || []);
     } catch {

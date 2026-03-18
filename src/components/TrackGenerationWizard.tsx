@@ -6,7 +6,7 @@ import { useSessionStore } from "@/stores/sessionStore";
 import { useProfileStore } from "@/stores/profileStore";
 import { ExplorePanel } from "@/components/ExplorePanel";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 interface TrackGenerationWizardProps {
   section: SongSection | null;

@@ -4,7 +4,7 @@ import type {
   StyleInterpretation, InterviewSession,
 } from "@/types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export interface StyleWorldSummary {
   name: string;
@@ -92,7 +92,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   aiRecommend: async (profileId, description) => {
     set({ aiLoading: true, aiError: null, lastAIResult: null });
     try {
-      const res = await fetch(`${API_URL}/api/styles/ai-recommend`, {
+      const res = await fetch(`${API_BASE}/api/styles/ai-recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile_id: profileId, description }),
@@ -114,7 +114,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   aiRefine: async (profileId, answers) => {
     set({ aiLoading: true, aiError: null, lastAIResult: null });
     try {
-      const res = await fetch(`${API_URL}/api/styles/ai-refine`, {
+      const res = await fetch(`${API_BASE}/api/styles/ai-refine`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile_id: profileId, answers }),
@@ -136,7 +136,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   aiApply: async (profileId, changes) => {
     set({ aiLoading: true, aiError: null });
     try {
-      const res = await fetch(`${API_URL}/api/styles/ai-apply`, {
+      const res = await fetch(`${API_BASE}/api/styles/ai-apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile_id: profileId, changes }),
@@ -161,7 +161,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
 
   fetchRefineQuestions: async () => {
     try {
-      const res = await fetch(`${API_URL}/api/styles/refine-questions`);
+      const res = await fetch(`${API_BASE}/api/styles/refine-questions`);
       if (res.ok) {
         const questions: RefineQuestion[] = await res.json();
         set({ refineQuestions: questions });
@@ -176,7 +176,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   aiInterpret: async (description) => {
     set({ aiLoading: true, aiError: null });
     try {
-      const res = await fetch(`${API_URL}/api/styles/ai-interpret`, {
+      const res = await fetch(`${API_BASE}/api/styles/ai-interpret`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description }),
@@ -206,7 +206,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   aiInterviewRecommend: async (profileId, description, interpretation, answers) => {
     set({ aiLoading: true, aiError: null, lastAIResult: null });
     try {
-      const res = await fetch(`${API_URL}/api/styles/ai-interview-recommend`, {
+      const res = await fetch(`${API_BASE}/api/styles/ai-interview-recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

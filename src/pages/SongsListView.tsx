@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Copy, Trash2, Music, ChevronRight, Pencil, Check, X } from "lucide-react";
 import type { Song } from "@/types";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export default function SongsListView() {
   const navigate = useNavigate();

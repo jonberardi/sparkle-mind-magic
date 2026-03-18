@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Plus, Wand2, Loader2 } from "lucide-react";
 import { FLAT_NOTE_NAMES, SCALE_TYPES, STYLE_WORLDS, STYLE_WORLD_LABELS } from "@/types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 const STYLE_PRESETS = [
   "Neo-Soul", "Jazz", "Lo-Fi", "R&B", "Hip Hop", "Funk",

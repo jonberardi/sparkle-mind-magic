@@ -4,13 +4,12 @@ import type { Generation, Song } from "@/types";
 import { TagPill } from "@/components/TagPill";
 import { StarRating } from "@/components/StarRating";
 import { getSettings, updateSettings } from "@/lib/settingsApi";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 interface SongOption { id: string; name: string; sections: { id: string; name: string }[] }
 
 const getMidiUrl = (generationId: string) =>
-  `${API_URL}/api/generations/${generationId}/midi`;
+  `${API_BASE}/api/generations/${generationId}/midi`;
 
 function formatOutputType(t: string) {
   return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -46,7 +45,7 @@ export default function LibraryView() {
     getSettings()
       .then((s) => setAutoSave(s.auto_save_to_library))
       .catch(() => {});
-    fetch(`${API_URL}/api/songs`)
+    fetch(`${API_BASE}/api/songs`)
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setSongs(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -72,7 +71,7 @@ export default function LibraryView() {
       if (songFilter) params.set("song_id", songFilter);
       if (sectionFilter) params.set("section_id", sectionFilter);
       if (outputTypeFilter) params.set("output_type", outputTypeFilter);
-      const res = await fetch(`${API_URL}/api/library?${params}`);
+      const res = await fetch(`${API_BASE}/api/library?${params}`);
       if (res.ok) {
         const data = await res.json();
         setGenerations(Array.isArray(data) ? data : data.items || []);
@@ -95,7 +94,7 @@ export default function LibraryView() {
       prev.map((g) => (g.id === genId ? { ...g, rating } : g))
     );
     try {
-      await fetch(`${API_URL}/api/generations/${genId}/rate`, {
+      await fetch(`${API_BASE}/api/generations/${genId}/rate`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating }),
@@ -374,7 +373,7 @@ export default function LibraryView() {
                         <button
                           onClick={async () => {
                             try {
-                              const res = await fetch(`${API_URL}/api/library/${gen.id}/regenerate`, { method: "POST" });
+                              const res = await fetch(`${API_BASE}/api/library/${gen.id}/regenerate`, { method: "POST" });
                               if (res.ok) {
                                 // Could open explore panel with result — for now just notify
                                 const data = await res.json();

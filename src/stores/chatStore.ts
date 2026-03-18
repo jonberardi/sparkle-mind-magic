@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type { ChatMessage, Conversation, AssistantAction, Generation } from "@/types";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 /** Normalize raw API messages to include all fields ChatMessage expects. */
 function normalizeMessages(raw: any[]): ChatMessage[] {

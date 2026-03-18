@@ -4,7 +4,7 @@ import type { Generation, Song, SongSection } from "@/types";
 import { useSessionStore } from "@/stores/sessionStore";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 interface SectionClipListProps {
   clips: Generation[];

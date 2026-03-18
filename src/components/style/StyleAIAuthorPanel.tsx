@@ -17,7 +17,7 @@ interface StyleAIAuthorPanelProps {
   styleWorlds: StyleWorldSummary[];
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE } from "@/lib/api";
 
 export function StyleAIAuthorPanel({
   onProfileCreated,
@@ -37,7 +37,7 @@ export function StyleAIAuthorPanel({
 
     // 1. Create a new blank profile
     try {
-      const createRes = await fetch(`${API_URL}/api/profiles`, {
+      const createRes = await fetch(`${API_BASE}/api/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "New Style", description: description.trim() }),
@@ -58,7 +58,7 @@ export function StyleAIAuthorPanel({
 
     try {
       const curated = curatedProfiles.find((p) => p.id === selectedCuratedId);
-      const res = await fetch(`${API_URL}/api/profiles/duplicate`, {
+      const res = await fetch(`${API_BASE}/api/profiles/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,7 +77,7 @@ export function StyleAIAuthorPanel({
 
   const handleBlankStyle = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/profiles`, {
+      const res = await fetch(`${API_BASE}/api/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "New Style", description: "Custom style" }),
@@ -153,7 +153,7 @@ export function StyleAIAuthorPanel({
 
     // Create a new blank profile, then hand off to parent for interview
     try {
-      const createRes = await fetch(`${API_URL}/api/profiles`, {
+      const createRes = await fetch(`${API_BASE}/api/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "New Style", description: description.trim() }),
