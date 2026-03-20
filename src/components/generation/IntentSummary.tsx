@@ -4,7 +4,7 @@
  * Shows the generation intent as a clear hierarchy:
  *   Role → Section → Destination (target)
  *   Style source and value (context)
- *   User-set refinements (overrides)
+ *   User-set refinements (overrides) — role-appropriate labels
  *   Advanced settings (when set)
  *   Contextual subtitle explaining the configuration
  */
@@ -13,6 +13,7 @@ import { STYLE_WORLD_LABELS } from "@/types";
 import type { OutputTarget } from "./GenerationControls";
 import type { SongSection } from "@/types";
 import type { StyleSourceMode } from "./StyleSourceSelector";
+import { getRoleFamily } from "./refinementSchemas";
 
 interface IntentSummaryProps {
   role: string;
@@ -20,17 +21,32 @@ interface IntentSummaryProps {
   destination: OutputTarget;
   styleSourceMode: StyleSourceMode;
   effectiveStyle: string | null;
+  // Shared
   groove: string;
-  motion: string;
-  voicing: string;
-  phraseBehavior: string;
   feel: string;
   density: string;
   energy: string;
+  // Melodic
+  motion: string;
+  voicing: string;
+  phraseBehavior: string;
   articulation: string;
   brightness: string;
   harmonicTension: string;
+  // Drums
+  pulse: string;
+  kickBehavior: string;
+  backbeat: string;
+  hatCymbal: string;
+  phraseEvolution: string;
+  ornamentation: string;
+  kitCharacter: string;
+  // Shared advanced
   humanize: string;
+}
+
+function formatValue(v: string): string {
+  return v.replace(/[-_]/g, " ");
 }
 
 export function IntentSummary({
@@ -40,33 +56,60 @@ export function IntentSummary({
   styleSourceMode,
   effectiveStyle,
   groove,
-  motion,
-  voicing,
-  phraseBehavior,
   feel,
   density,
   energy,
+  motion,
+  voicing,
+  phraseBehavior,
   articulation,
   brightness,
   harmonicTension,
+  pulse,
+  kickBehavior,
+  backbeat,
+  hatCymbal,
+  phraseEvolution,
+  ornamentation,
+  kitCharacter,
   humanize,
 }: IntentSummaryProps) {
   const hasRole = !!role;
   const hasStyle = !!effectiveStyle;
+  const family = getRoleFamily(role);
 
+  // Build refinement tags based on role family
   const refinements: string[] = [];
+
+  // Shared
   if (groove) refinements.push(`Groove ${groove}`);
-  if (motion) refinements.push(`Motion ${motion}`);
-  if (voicing) refinements.push(`Voicing ${voicing}`);
-  if (phraseBehavior) refinements.push(`Phrase ${phraseBehavior.replace("_", " & ")}`);
   if (feel) refinements.push(`Feel ${feel}`);
   if (density) refinements.push(`Density ${density}`);
   if (energy) refinements.push(`Energy ${energy}`);
 
+  if (family === "drums") {
+    if (pulse) refinements.push(`Pulse ${formatValue(pulse)}`);
+    if (kickBehavior) refinements.push(`Kick ${kickBehavior}`);
+    if (backbeat) refinements.push(`Backbeat ${backbeat}`);
+    if (hatCymbal) refinements.push(`Hats ${formatValue(hatCymbal)}`);
+  } else {
+    if (motion) refinements.push(`Motion ${motion}`);
+    if (voicing) refinements.push(`Voicing ${voicing}`);
+    if (phraseBehavior) refinements.push(`Phrase ${formatValue(phraseBehavior)}`);
+  }
+
   const advanced: string[] = [];
-  if (articulation) advanced.push(`Articulation ${articulation}`);
-  if (brightness) advanced.push(`Brightness ${brightness}`);
-  if (harmonicTension) advanced.push(`Tension ${harmonicTension}`);
+
+  if (family === "drums") {
+    if (phraseEvolution) advanced.push(`Evolution ${formatValue(phraseEvolution)}`);
+    if (ornamentation) advanced.push(`Detail ${formatValue(ornamentation)}`);
+    if (kitCharacter) advanced.push(`Kit ${kitCharacter}`);
+  } else {
+    if (articulation) advanced.push(`Articulation ${articulation}`);
+    if (brightness) advanced.push(`Brightness ${brightness}`);
+    if (harmonicTension) advanced.push(`Tension ${harmonicTension}`);
+  }
+
   if (humanize && humanize !== "none") advanced.push(`Humanize ${humanize}`);
 
   const hasOverrides = refinements.length > 0 || advanced.length > 0;

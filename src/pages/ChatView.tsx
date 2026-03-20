@@ -48,9 +48,10 @@ export default function ChatView() {
     if (!text || isStreaming) return;
 
     addUserMessage(text);
+    const freshConvId = useChatStore.getState().activeConversationId;
     send({
       type: "chat_message",
-      conversation_id: activeConversationId,
+      conversation_id: freshConvId,
       content: text,
       style_profile_id: activeProfileId || "default",
       workflow_context: getWorkflowContext(),

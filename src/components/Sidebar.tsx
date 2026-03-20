@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { MessageSquare, BookOpen, Settings2, Palette, Zap, Wrench, RefreshCw, Activity, ScrollText, Music } from "lucide-react";
+import { MessageSquare, BookOpen, Settings2, Palette, Zap, Wrench, RefreshCw, Activity, ScrollText, Music, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useWebSocketStore } from "@/stores/websocketStore";
 import { useSessionStore } from "@/stores/sessionStore";
 import { useProfileStore } from "@/stores/profileStore";
@@ -25,6 +25,7 @@ export function Sidebar() {
   const [devStatus, setDevStatus] = useState<string | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logLines, setLogLines] = useState<string[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
 
   const statusColor =
     abletonConnected
@@ -54,12 +55,64 @@ export function Sidebar() {
       .catch(() => {});
   }, []);
 
+  if (collapsed) {
+    return (
+      <aside className="flex flex-col w-[52px] min-w-[52px] h-screen bg-sidebar border-r border-sidebar-border items-center py-3 gap-1">
+        <button
+          onClick={() => setCollapsed(false)}
+          className="p-2 text-muted-foreground hover:text-foreground transition-colors mb-1"
+          title="Expand sidebar"
+        >
+          <PanelLeftOpen size={16} />
+        </button>
+        <Zap className="w-5 h-5 text-primary mb-3" />
+
+        {/* Connection indicator */}
+        <span className={cn("w-2 h-2 rounded-full shrink-0 mb-3", statusColor)} title={statusText} />
+
+        {/* Nav icons */}
+        {navItems.map(({ to, label, icon: Icon }) => {
+          const isActive =
+            to === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(to);
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              title={label}
+              className={cn(
+                "p-2 rounded-md transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+            </NavLink>
+          );
+        })}
+
+        <div className="flex-1" />
+      </aside>
+    );
+  }
+
   return (
     <aside className="flex flex-col w-[280px] min-w-[280px] h-screen bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-5 py-5">
-        <Zap className="w-6 h-6 text-primary" />
-        <h1 className="text-lg font-bold tracking-tight text-foreground">AbleThor</h1>
+      <div className="flex items-center justify-between px-5 py-5">
+        <div className="flex items-center gap-2">
+          <Zap className="w-6 h-6 text-primary" />
+          <h1 className="text-lg font-bold tracking-tight text-foreground">AbleThor</h1>
+        </div>
+        <button
+          onClick={() => setCollapsed(true)}
+          className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose size={16} />
+        </button>
       </div>
 
       {/* Connection Status */}

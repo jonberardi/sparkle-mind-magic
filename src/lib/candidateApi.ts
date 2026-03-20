@@ -18,6 +18,14 @@ export interface GenerateCandidatesParams {
   density?: string;
   rhythmicTendency?: string;
   additionalInstructions?: string;
+  // Drum-specific refinements
+  pulse?: string;
+  kickBehavior?: string;
+  backbeat?: string;
+  hatCymbal?: string;
+  phraseEvolution?: string;
+  ornamentation?: string;
+  kitCharacter?: string;
 }
 
 export async function generateCandidates(
@@ -42,6 +50,14 @@ export async function generateCandidates(
           density: params.density,
           rhythmic_tendency: params.rhythmicTendency,
           additional_instructions: params.additionalInstructions,
+          // Drum-specific
+          pulse: params.pulse,
+          kick_behavior: params.kickBehavior,
+          backbeat: params.backbeat,
+          hat_cymbal: params.hatCymbal,
+          phrase_evolution: params.phraseEvolution,
+          ornamentation: params.ornamentation,
+          kit_character: params.kitCharacter,
         }),
       },
     );
@@ -92,6 +108,14 @@ export async function regenerateCandidates(
           density: params.density,
           rhythmic_tendency: params.rhythmicTendency,
           additional_instructions: params.additionalInstructions,
+          // Drum-specific
+          pulse: params.pulse,
+          kick_behavior: params.kickBehavior,
+          backbeat: params.backbeat,
+          hat_cymbal: params.hatCymbal,
+          phrase_evolution: params.phraseEvolution,
+          ornamentation: params.ornamentation,
+          kit_character: params.kitCharacter,
           frozen: frozenPayload,
         }),
       },
@@ -123,6 +147,14 @@ export interface IndividualCandidateParams {
   density?: string;
   rhythmicTendency?: string;
   additionalInstructions?: string;
+  // Drum-specific refinements
+  pulse?: string;
+  kickBehavior?: string;
+  backbeat?: string;
+  hatCymbal?: string;
+  phraseEvolution?: string;
+  ornamentation?: string;
+  kitCharacter?: string;
 }
 
 export async function generateIndividualCandidates(
@@ -144,6 +176,14 @@ export async function generateIndividualCandidates(
       density: params.density,
       rhythmic_tendency: params.rhythmicTendency,
       additional_instructions: params.additionalInstructions,
+      // Drum-specific
+      pulse: params.pulse,
+      kick_behavior: params.kickBehavior,
+      backbeat: params.backbeat,
+      hat_cymbal: params.hatCymbal,
+      phrase_evolution: params.phraseEvolution,
+      ornamentation: params.ornamentation,
+      kit_character: params.kitCharacter,
     }),
   });
   if (!res.ok) throw new Error(`Generate failed: ${res.statusText}`);
@@ -181,6 +221,14 @@ export async function regenerateIndividualCandidates(
       density: params.density,
       rhythmic_tendency: params.rhythmicTendency,
       additional_instructions: params.additionalInstructions,
+      // Drum-specific
+      pulse: params.pulse,
+      kick_behavior: params.kickBehavior,
+      backbeat: params.backbeat,
+      hat_cymbal: params.hatCymbal,
+      phrase_evolution: params.phraseEvolution,
+      ornamentation: params.ornamentation,
+      kit_character: params.kitCharacter,
       frozen: frozenPayload,
     }),
   });

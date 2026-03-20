@@ -210,6 +210,7 @@ export function ExplorePanel({
         clipLengthBars: candidate.clip_length_bars,
         role: role,
         trackName: role ? role.charAt(0).toUpperCase() + role.slice(1) : undefined,
+        loadInstrument: targetTrackId === "new", // only load instrument on new tracks
         songId: song.id,
         sectionId: section?.id,
         prompt,
@@ -218,22 +219,21 @@ export function ExplorePanel({
         conversationId: convId,
       });
       setSentLabels((prev) => new Set(prev).add(candidate.label));
-      if (selectedLabels.size <= 1) {
-        const summary: ExploreSentSummary = {
-          conversationId: convId,
-          candidates: [{
-            label: candidate.label,
-            clipName: candidate.clip_name,
-            description: candidate.description,
-            variationLabel: candidate.variation_label || undefined,
-            noteCount: candidate.notes.length,
-            clipLengthBars: candidate.clip_length_bars,
-          }],
-          prompt,
-          role,
-        };
-        setTimeout(() => onSent(summary), 600);
-      }
+      // Report for clip list refresh (panel stays open)
+      const summary: ExploreSentSummary = {
+        conversationId: convId,
+        candidates: [{
+          label: candidate.label,
+          clipName: candidate.clip_name,
+          description: candidate.description,
+          variationLabel: candidate.variation_label || undefined,
+          noteCount: candidate.notes.length,
+          clipLengthBars: candidate.clip_length_bars,
+        }],
+        prompt,
+        role,
+      };
+      onSent(summary);
     } catch (e: any) {
       setError(e.message || "Send failed");
     } finally {
@@ -253,7 +253,8 @@ export function ExplorePanel({
 
     // Shared conversation ID and track ID for all selected clips
     const convId = crypto.randomUUID();
-    let sharedTrackId: number | undefined;
+    // Use existing track if user selected one; only create new if "new" was chosen
+    let sharedTrackId: number | undefined = targetTrackId === "new" ? undefined : targetTrackId;
 
     for (let i = 0; i < selected.length; i++) {
       const candidate = selected[i];

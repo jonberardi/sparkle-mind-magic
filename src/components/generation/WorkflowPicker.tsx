@@ -31,13 +31,6 @@ const WORKFLOWS: {
     enabled: true,
   },
   {
-    id: "guided",
-    label: "Refine with AI",
-    description: "Upcoming",
-    icon: MessageSquareText,
-    enabled: false,
-  },
-  {
     id: "explore",
     label: "Explore Ideas",
     description: "Compare candidates",

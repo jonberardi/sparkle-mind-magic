@@ -109,8 +109,12 @@ export function SongSetupDialog({ open, onClose, onSave, initial, songId, isNewS
     }
   };
 
+  // For new songs, require key, scale, and tempo
+  const missingRequired = isNewSong && (!key || !scale || !tempo);
+
   const handleSave = () => {
     if (!name.trim()) return;
+    if (missingRequired) return;
     onSave({
       name: name.trim(),
       key: key || null,
@@ -135,9 +139,11 @@ export function SongSetupDialog({ open, onClose, onSave, initial, songId, isNewS
           <h3 className="text-sm font-semibold text-foreground">
             {isNewSong ? "Set Up Your Song" : initial ? "Edit Song" : "New Song"}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X size={16} />
-          </button>
+          {!isNewSong && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         {/* Body */}
@@ -196,33 +202,39 @@ export function SongSetupDialog({ open, onClose, onSave, initial, songId, isNewS
           {/* Key / Scale / BPM */}
           <div className="flex gap-3">
             <label className="flex-1">
-              <span className="text-xs text-muted-foreground">Key</span>
+              <span className="text-xs text-muted-foreground">
+                Key{isNewSong && <span className="text-destructive ml-0.5">*</span>}
+              </span>
               <select
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                className="mt-1 w-full bg-input border border-border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`mt-1 w-full bg-input border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${isNewSong && !key ? "border-destructive/40" : "border-border"}`}
               >
                 <option value="">--</option>
                 {FLAT_NOTE_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </label>
             <label className="flex-1">
-              <span className="text-xs text-muted-foreground">Scale</span>
+              <span className="text-xs text-muted-foreground">
+                Scale{isNewSong && <span className="text-destructive ml-0.5">*</span>}
+              </span>
               <select
                 value={scale}
                 onChange={(e) => setScale(e.target.value)}
-                className="mt-1 w-full bg-input border border-border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`mt-1 w-full bg-input border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${isNewSong && !scale ? "border-destructive/40" : "border-border"}`}
               >
                 <option value="">--</option>
                 {SCALE_TYPES.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}
               </select>
             </label>
             <label className="w-24">
-              <span className="text-xs text-muted-foreground">BPM</span>
+              <span className="text-xs text-muted-foreground">
+                BPM{isNewSong && <span className="text-destructive ml-0.5">*</span>}
+              </span>
               <input
                 type="number" min={20} max={300} value={tempo}
                 onChange={(e) => setTempo(e.target.value)} placeholder="--"
-                className="mt-1 w-full bg-input border border-border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                className={`mt-1 w-full bg-input border rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring ${isNewSong && !tempo ? "border-destructive/40" : "border-border"}`}
               />
             </label>
           </div>
@@ -335,20 +347,31 @@ export function SongSetupDialog({ open, onClose, onSave, initial, songId, isNewS
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
-          >
-            {isNewSong ? "Skip for now" : "Cancel"}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!name.trim()}
-            className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-40 transition-colors"
-          >
-            {isNewSong ? "Save & Start" : "Save"}
-          </button>
+        <div className="flex items-center justify-between px-5 py-3 border-t border-border">
+          <div>
+            {isNewSong && missingRequired && (
+              <span className="text-[10px] text-muted-foreground">
+                Key, Scale, and BPM are required to start.
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {!isNewSong && (
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={!name.trim() || missingRequired}
+              className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-40 transition-colors"
+            >
+              {isNewSong ? "Save & Start" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

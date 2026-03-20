@@ -151,7 +151,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         // Finalize: add assistant message to conversation
         const convos = [...state.conversations];
         const idx = convos.findIndex((c) => c.id === state.activeConversationId);
-        if (idx >= 0) {
+        if (idx >= 0 && newContent.trim()) {
           const assistantMsg: ChatMessage = {
             id: crypto.randomUUID(),
             role: "assistant",
@@ -161,6 +161,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
             timestamp: new Date().toISOString(),
           };
           convos[idx] = { ...convos[idx], messages: [...convos[idx].messages, assistantMsg] };
+        } else if (idx < 0 && newContent.trim()) {
+          // Safety net: activeConversationId is null but we have content.
+          // Store as pending so it's not lost. The most recent conversation
+          // is the most likely target (conversation_started may not have arrived yet).
+          console.warn("[chatStore] appendStreamChunk: no active conversation for finalized text, storing in most recent conversation");
+          if (convos.length > 0) {
+            const assistantMsg: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content: newContent,
+              actions: [],
+              generation: null,
+              timestamp: new Date().toISOString(),
+            };
+            convos[0] = { ...convos[0], messages: [...convos[0].messages, assistantMsg] };
+          }
         }
         return { conversations: convos, streamingContent: "", isStreaming: false };
       }

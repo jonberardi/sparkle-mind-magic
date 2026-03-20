@@ -25,6 +25,7 @@ import { IntentSummary } from "./IntentSummary";
 import { ExplorePanel } from "../ExplorePanel";
 import type { ExploreSentSummary } from "../ExplorePanel";
 import type { StyleSourceMode } from "./StyleSourceSelector";
+import { getRoleFamily } from "./refinementSchemas";
 
 // ── Props ──
 
@@ -44,17 +45,28 @@ const DEFAULT_CONTROLS: ControlValues = {
   clipCount: 1,
   styleSourceMode: "song",
   customStyleWorld: "",
+  // Shared
   groove: "",
-  motion: "",
-  voicing: "",
-  phraseBehavior: "",
   feel: "",
   density: "",
   energy: "",
+  // Melodic
+  motion: "",
+  voicing: "",
+  phraseBehavior: "",
   articulation: "",
-  humanize: "",
   brightness: "",
   harmonicTension: "",
+  // Drums
+  pulse: "",
+  kickBehavior: "",
+  backbeat: "",
+  hatCymbal: "",
+  phraseEvolution: "",
+  ornamentation: "",
+  kitCharacter: "",
+  // Shared advanced
+  humanize: "",
 };
 
 // ── Prompt builder ──
@@ -96,20 +108,38 @@ function buildGenerationPrompt(
     parts.push(`Style: ${label} (${source}).`);
   }
 
-  // Refinements — only include what the user explicitly set
+  // Refinements — role-appropriate language
+  const family = getRoleFamily(controls.role);
+
+  // Shared refinements
   if (controls.groove) parts.push(`Groove: ${controls.groove}.`);
-  if (controls.motion) parts.push(`Motion: ${controls.motion}.`);
-  if (controls.voicing) parts.push(`Voicing: ${controls.voicing}.`);
-  if (controls.phraseBehavior) parts.push(`Phrase: ${controls.phraseBehavior.replace("_", " & ")}.`);
   if (controls.feel) parts.push(`Feel: ${controls.feel}.`);
   if (controls.density) parts.push(`Density: ${controls.density}.`);
   if (controls.energy) parts.push(`Energy: ${controls.energy}.`);
 
-  // Advanced
-  if (controls.articulation) parts.push(`Articulation: ${controls.articulation}.`);
+  if (family === "drums") {
+    // Drum-specific refinements
+    if (controls.pulse) parts.push(`Pulse: ${controls.pulse}.`);
+    if (controls.kickBehavior) parts.push(`Kick: ${controls.kickBehavior}.`);
+    if (controls.backbeat) parts.push(`Backbeat: ${controls.backbeat}.`);
+    if (controls.hatCymbal) parts.push(`Hats/cymbals: ${controls.hatCymbal.replace(/-/g, " ")}.`);
+    // Drum advanced
+    if (controls.phraseEvolution) parts.push(`Phrase evolution: ${controls.phraseEvolution.replace(/-/g, " ")}.`);
+    if (controls.ornamentation) parts.push(`Ornamentation: ${controls.ornamentation.replace(/-/g, " ")}.`);
+    if (controls.kitCharacter) parts.push(`Kit character: ${controls.kitCharacter}.`);
+  } else {
+    // Melodic/harmonic refinements
+    if (controls.motion) parts.push(`Motion: ${controls.motion}.`);
+    if (controls.voicing) parts.push(`Voicing: ${controls.voicing}.`);
+    if (controls.phraseBehavior) parts.push(`Phrase: ${controls.phraseBehavior.replace("_", " & ")}.`);
+    // Melodic advanced
+    if (controls.articulation) parts.push(`Articulation: ${controls.articulation}.`);
+    if (controls.brightness) parts.push(`Brightness: ${controls.brightness}.`);
+    if (controls.harmonicTension) parts.push(`Harmonic tension: ${controls.harmonicTension}.`);
+  }
+
+  // Shared advanced
   if (controls.humanize && controls.humanize !== "none") parts.push(`Humanization: ${controls.humanize}.`);
-  if (controls.brightness) parts.push(`Brightness: ${controls.brightness}.`);
-  if (controls.harmonicTension) parts.push(`Harmonic tension: ${controls.harmonicTension}.`);
 
   // User's freeform prompt — always last for emphasis
   if (prompt.trim()) {
@@ -209,10 +239,12 @@ export function GenerationPanel({
         section={section}
         prompt={fullPrompt}
         role={controls.role || undefined}
-        onClose={() => setShowExplore(false)}
-        onSent={(summary) => {
+        onClose={() => {
           setShowExplore(false);
           setPrompt("");
+        }}
+        onSent={(summary) => {
+          // Report the send for clip list refresh, but keep explore panel open
           onExploreComplete?.(summary);
         }}
       />
@@ -263,15 +295,22 @@ export function GenerationPanel({
           styleSourceMode={controls.styleSourceMode}
           effectiveStyle={effectiveStyle}
           groove={controls.groove}
-          motion={controls.motion}
-          voicing={controls.voicing}
-          phraseBehavior={controls.phraseBehavior}
           feel={controls.feel}
           density={controls.density}
           energy={controls.energy}
+          motion={controls.motion}
+          voicing={controls.voicing}
+          phraseBehavior={controls.phraseBehavior}
           articulation={controls.articulation}
           brightness={controls.brightness}
           harmonicTension={controls.harmonicTension}
+          pulse={controls.pulse}
+          kickBehavior={controls.kickBehavior}
+          backbeat={controls.backbeat}
+          hatCymbal={controls.hatCymbal}
+          phraseEvolution={controls.phraseEvolution}
+          ornamentation={controls.ornamentation}
+          kitCharacter={controls.kitCharacter}
           humanize={controls.humanize}
         />
 

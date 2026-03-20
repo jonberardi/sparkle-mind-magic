@@ -2,18 +2,26 @@
  * GenerationControls — three-tier progressive disclosure for musical parameters.
  *
  * Basics:       Role, Section, Destination, Style Source (always visible)
- * Refinements:  Groove, Motion, Harmony/Voicing, Phrase, Feel, Density, Energy (expandable)
- * Advanced:     Register, Articulation, Humanize, Brightness, Harmonic Tension (collapsed)
+ * Refinements:  Schema-driven per role family (expandable)
+ * Advanced:     Schema-driven per role family (collapsed)
+ *
+ * The refinement and advanced tiers swap dynamically based on the selected
+ * role's family (melodic vs drums) using schemas from refinementSchemas.ts.
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import type { Song, SongSection } from "@/types";
-import { TRACK_ROLES, HUMANIZE_PRESETS } from "@/types";
+import { TRACK_ROLES } from "@/types";
 import type { GenerationWorkflow } from "./WorkflowPicker";
 import { useSessionStore } from "@/stores/sessionStore";
 import { StyleSourceSelector, type StyleSourceMode } from "./StyleSourceSelector";
 import { API_BASE } from "@/lib/api";
+import {
+  getSchemaForRole,
+  getFieldsToClear,
+  type RefinementField,
+} from "./refinementSchemas";
 
 // ── Option definitions ──
 
@@ -22,134 +30,97 @@ const ROLE_OPTIONS = TRACK_ROLES.map((r) => ({
   label: r === "arp" ? "Arp" : r.charAt(0).toUpperCase() + r.slice(1),
 }));
 
-const GROOVE_OPTIONS = [
-  { value: "straight", label: "Straight" },
-  { value: "syncopated", label: "Syncopated" },
-  { value: "swung", label: "Swung" },
-  { value: "broken", label: "Broken" },
-] as const;
-
-const MOTION_OPTIONS = [
-  { value: "chordal", label: "Chordal" },
-  { value: "stepwise", label: "Stepwise" },
-  { value: "arpeggiated", label: "Arpeggiated" },
-  { value: "static", label: "Static" },
-  { value: "leaping", label: "Leaping" },
-] as const;
-
-const VOICING_OPTIONS = [
-  { value: "close", label: "Close" },
-  { value: "spread", label: "Spread" },
-  { value: "drop2", label: "Drop 2" },
-  { value: "shell", label: "Shell" },
-  { value: "rootless", label: "Rootless" },
-  { value: "open", label: "Open" },
-] as const;
-
-const PHRASE_OPTIONS = [
-  { value: "repetitive", label: "Repetitive" },
-  { value: "evolving", label: "Evolving" },
-  { value: "call_response", label: "Call & Response" },
-  { value: "building", label: "Building" },
-] as const;
-
-const FEEL_OPTIONS = [
-  { value: "tight", label: "Tight" },
-  { value: "natural", label: "Natural" },
-  { value: "loose", label: "Loose" },
-  { value: "soulful", label: "Soulful" },
-] as const;
-
-const DENSITY_OPTIONS = [
-  { value: "sparse", label: "Sparse" },
-  { value: "moderate", label: "Moderate" },
-  { value: "busy", label: "Busy" },
-  { value: "dense", label: "Dense" },
-] as const;
-
-const ENERGY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-] as const;
-
-const BRIGHTNESS_OPTIONS = [
-  { value: "dark", label: "Dark" },
-  { value: "neutral", label: "Neutral" },
-  { value: "bright", label: "Bright" },
-] as const;
-
-const TENSION_OPTIONS = [
-  { value: "consonant", label: "Consonant" },
-  { value: "moderate", label: "Moderate" },
-  { value: "tense", label: "Tense" },
-] as const;
-
-const ARTICULATION_OPTIONS = [
-  { value: "legato", label: "Legato" },
-  { value: "staccato", label: "Staccato" },
-  { value: "percussive", label: "Percussive" },
-] as const;
-
-// ── Tooltips ──
+// ── Tooltips (option-level, shared across schemas) ──
 
 const TOOLTIPS: Record<string, string> = {
-  // Groove
+  // Groove (shared)
   straight: "Even, on-the-grid rhythm with no swing or syncopation.",
   syncopated: "Emphasizes off-beats for a more groove-driven, less straight feel.",
   swung: "Shifts notes slightly late for a triplet-influenced shuffle feel.",
   broken: "Irregular, fragmented rhythmic patterns with intentional gaps and surprises.",
-  // Motion
+  rolling: "Continuous, flowing rhythmic motion — toms, ghost notes, or rapid hats.",
+  // Motion (melodic)
   chordal: "Plays full chord shapes, moving them as blocks.",
   stepwise: "Notes move by small intervals — smooth, melodic motion.",
   arpeggiated: "Chord tones played one at a time in sequence.",
   static: "Stays on one note or chord — creates tension through repetition.",
   leaping: "Wide interval jumps between notes — more dramatic and angular.",
-  // Voicing
+  // Voicing (melodic)
   close: "Notes clustered within an octave — dense, focused sound.",
   spread: "Notes spaced across multiple octaves — wide, open feel.",
   drop2: "Second-highest note dropped an octave — common in jazz, warm and full.",
   shell: "Root plus 3rd and 7th only — lean, essential harmony.",
   rootless: "Omits the root for a lighter, jazzier feel. Lets bass define the root.",
   open: "Wide spacing between individual notes — airy, spacious voicings.",
-  // Phrase
+  // Phrase (melodic)
   repetitive: "Same pattern loops with minimal variation — hypnotic, driving.",
   evolving: "Gradually transforms across the phrase — keeps things moving.",
   call_response: "Two alternating musical ideas — conversational, dynamic.",
   building: "Increases in intensity, density, or motion across the phrase.",
-  // Feel
+  // Feel (shared)
   tight: "Precise timing, locked to the grid — mechanical, punchy.",
   natural: "Slight human variation in timing and velocity — organic.",
   loose: "Relaxed timing, notes sit slightly off-grid — laid-back.",
   soulful: "Expressive timing and velocity — notes sit behind the beat with feeling.",
-  // Density
+  // Density (shared)
   sparse: "Few notes with lots of space — breathing room, minimal.",
   moderate: "Balanced note density — neither busy nor empty.",
   busy: "Active, many notes — keeps the ear engaged.",
   dense: "Saturated, continuous notes — thick, full texture.",
-  // Energy
+  // Energy (shared)
   low: "Calm, subdued energy — good for intros, breakdowns, ambient sections.",
   medium: "Balanced energy — works for verses, transitions.",
   high: "Intense, driving energy — choruses, drops, peak moments.",
-  // Articulation
+  // Articulation (melodic)
   legato: "Smooth, connected notes — flowing, sustained.",
   staccato: "Short, detached notes — punchy, rhythmic.",
   percussive: "Sharp attack on each note — aggressive, hits hard.",
-  // Brightness
+  // Brightness (melodic)
   dark: "Favors lower frequencies and mellower tones.",
   neutral: "Balanced frequency range — no strong bias.",
   bright: "Emphasizes higher frequencies — more presence and sparkle.",
-  // Harmonic Tension
+  // Harmonic Tension (melodic)
   consonant: "Stable, resolved harmonies — pleasant, settled.",
-  // "moderate" already defined above for density — tension context handled by label
   tense: "Dissonant, unresolved harmonies — creates pull and suspense.",
-  // Humanization
+  // Humanization (shared)
   none: "No timing or velocity variation — fully quantized.",
-  // tight already defined above
-  // natural already defined above
-  // loose already defined above
   drunk: "Heavy timing drift — stumbling, unsteady feel.",
-  // soulful already defined above
+  // Pulse (drums)
+  "8th-driven": "Primary subdivision is 8th notes — driving, open.",
+  "16th-driven": "Primary subdivision is 16th notes — detailed, busy.",
+  mixed: "Mix of subdivisions — 8ths and 16ths where needed.",
+  // Kick (drums)
+  anchored: "Kick on strong beats — solid foundation, predictable.",
+  driving: "Steady, insistent kick — four-on-the-floor or double time.",
+  // Backbeat (drums)
+  solid: "Strong, consistent snare on 2 and 4 — classic backbeat.",
+  light: "Lighter snare hits — more delicate, less aggressive.",
+  ghosted: "Heavy use of ghost notes — soft, nuanced, groove-forward.",
+  displaced: "Snare shifted off the expected beats — creates tension.",
+  minimal: "Very few snare hits — sparse, spacious.",
+  // Hat/Cymbal (drums)
+  "steady-hats": "Consistent hi-hat pattern — steady pulse, reliable.",
+  "accented-hats": "Hi-hats with dynamic accents — more expressive.",
+  "open-hat-lifts": "Open hi-hat on upbeats or transitions — adds breath.",
+  "ride-led": "Ride cymbal carries the pattern instead of hats.",
+  textural: "Percussion and cymbal washes — ambient, less defined.",
+  // Phrase Evolution (drums)
+  "2-bar-response": "Pattern answers itself every 2 bars — conversational.",
+  "4-bar-lift": "Builds toward a peak every 4 bars — tension and release.",
+  "fill-heavy": "Frequent fills and transitions — dramatic, active.",
+  // Ornamentation (drums)
+  "subtle-ghosts": "Light ghost notes for texture — subtle groove enhancement.",
+  "medium-detail": "Moderate ghost notes and accents — balanced detail.",
+  "busy-detail": "Heavy ornamentation — ghost notes, flams, drags throughout.",
+  // Kit/Tone (drums)
+  dry: "Tight, unprocessed drum sound — no room, no reverb.",
+  warm: "Round, full-bodied drum tone — vintage, analog feel.",
+  crisp: "Clean, defined transients — modern, clear.",
+  dusty: "Lo-fi, slightly degraded — SP-1200, tape saturation.",
+  punchy: "Strong transient attack — cuts through the mix.",
+  electronic: "Synthesized drum sounds — 808s, 909s, digital.",
+  hybrid: "Mix of acoustic and electronic elements.",
+  organic: "Natural, acoustic drum character — room mics, wood.",
 };
 
 // ── Types ──
@@ -162,27 +133,30 @@ export interface ControlValues {
   clipCount: number;
   styleSourceMode: StyleSourceMode;
   customStyleWorld: string;
-  // Refinements
+  // Shared refinements
   groove: string;
-  motion: string;
-  voicing: string;
-  phraseBehavior: string;
   feel: string;
   density: string;
   energy: string;
-  // Advanced
+  // Melodic refinements
+  motion: string;
+  voicing: string;
+  phraseBehavior: string;
+  // Melodic advanced
   articulation: string;
-  humanize: string;
   brightness: string;
   harmonicTension: string;
-}
-
-interface GenerationControlsProps {
-  song: Song;
-  section: SongSection | null;
-  values: ControlValues;
-  onChange: (key: keyof ControlValues, value: any) => void;
-  workflow?: GenerationWorkflow;
+  // Drum refinements
+  pulse: string;
+  kickBehavior: string;
+  backbeat: string;
+  hatCymbal: string;
+  // Drum advanced
+  phraseEvolution: string;
+  ornamentation: string;
+  kitCharacter: string;
+  // Shared advanced
+  humanize: string;
 }
 
 // ── Chip selector helper ──
@@ -216,33 +190,54 @@ function ChipGroup({
   );
 }
 
-const CATEGORY_TOOLTIPS: Record<string, string> = {
-  "Role": "What instrument or part this track plays in the arrangement.",
-  "Groove": "How the rhythm is structured — straight, swung, syncopated, or broken.",
-  "Motion": "How notes move from one to the next — by step, leap, chord, or arpeggio.",
-  "Voicing": "How chord notes are spaced and arranged vertically.",
-  "Phrase": "How the musical idea develops across bars — repeating, building, evolving.",
-  "Feel": "How tight or loose the timing feels — from mechanical to expressive.",
-  "Density": "How many notes fill the space — from sparse to saturated.",
-  "Energy": "Overall intensity level of the generated part.",
-  "Articulation": "How individual notes are attacked and sustained.",
-  "Brightness": "Tonal character — dark and mellow vs bright and present.",
-  "Harmonic Tension": "How stable or unresolved the harmonies feel.",
-  "Humanization": "Amount of natural timing and velocity variation applied.",
-};
-
-function ControlRow({ label, children }: { label: string; children: React.ReactNode }) {
+function ControlRow({ label, tooltip, children }: { label: string; tooltip?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <span
         className="text-[9px] text-muted-foreground/70 uppercase tracking-wider"
-        title={CATEGORY_TOOLTIPS[label] || undefined}
+        title={tooltip || undefined}
       >
         {label}
       </span>
       {children}
     </div>
   );
+}
+
+// ── Schema-driven field renderer ──
+
+function SchemaFields({
+  fields,
+  values,
+  onChange,
+}: {
+  fields: readonly RefinementField[];
+  values: ControlValues;
+  onChange: (key: keyof ControlValues, value: any) => void;
+}) {
+  return (
+    <>
+      {fields.map((field) => (
+        <ControlRow key={field.key} label={field.label} tooltip={field.categoryTooltip}>
+          <ChipGroup
+            options={field.options}
+            value={(values as any)[field.key] || ""}
+            onChange={(v) => onChange(field.key as keyof ControlValues, v)}
+          />
+        </ControlRow>
+      ))}
+    </>
+  );
+}
+
+// ── Props ──
+
+interface GenerationControlsProps {
+  song: Song;
+  section: SongSection | null;
+  values: ControlValues;
+  onChange: (key: keyof ControlValues, value: any) => void;
+  workflow?: GenerationWorkflow;
 }
 
 // ── Component ──
@@ -257,6 +252,7 @@ export function GenerationControls({
   const [showRefinements, setShowRefinements] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const prevRoleRef = useRef(values.role);
 
   const session = useSessionStore((s) => s.session);
   const setSession = useSessionStore((s) => s.setSession);
@@ -271,26 +267,49 @@ export function GenerationControls({
     setRefreshing(false);
   };
 
-  // Count active refinements for the toggle label
-  const refinementCount = [
-    values.groove, values.motion, values.voicing,
-    values.phraseBehavior, values.feel, values.density, values.energy,
-  ].filter(Boolean).length;
+  // Get active schema based on role
+  const schema = getSchemaForRole(values.role);
+  const refinementFields = schema.fields.filter((f) => f.tier === "refinement");
+  const advancedFields = schema.fields.filter((f) => f.tier === "advanced");
 
-  const advancedCount = [
-    values.articulation, values.humanize, values.brightness, values.harmonicTension,
-  ].filter(Boolean).length;
+  // Count active fields for the toggle labels
+  const refinementCount = refinementFields
+    .filter((f) => !!(values as any)[f.key])
+    .length;
+  const advancedCount = advancedFields
+    .filter((f) => {
+      const v = (values as any)[f.key];
+      return f.key === "humanize" ? v && v !== "none" : !!v;
+    })
+    .length;
+
+  // Handle role change with cross-family field clearing
+  const handleRoleChange = (newRole: string) => {
+    const prevRole = prevRoleRef.current;
+    // Clear fields exclusive to the old family when switching families
+    if (prevRole && newRole) {
+      const toClear = getFieldsToClear(prevRole, newRole);
+      if (toClear.length > 0) {
+        // Batch clear: set each exclusive field to ""
+        for (const key of toClear) {
+          onChange(key as keyof ControlValues, "");
+        }
+      }
+    }
+    prevRoleRef.current = newRole;
+    onChange("role", newRole);
+  };
 
   return (
     <div className="space-y-3">
       {/* ── BASICS (always visible) ── */}
 
       {/* Role */}
-      <ControlRow label="Role">
+      <ControlRow label="Role" tooltip="What instrument or part this track plays in the arrangement.">
         <ChipGroup
           options={ROLE_OPTIONS}
           value={values.role}
-          onChange={(v) => onChange("role", v)}
+          onChange={handleRoleChange}
         />
       </ControlRow>
 
@@ -309,7 +328,7 @@ export function GenerationControls({
       )}
 
       {/* Destination */}
-      <ControlRow label="Destination">
+      <ControlRow label="Destination" tooltip="Where the generated clip will be placed.">
         <div className="flex items-center gap-2">
           <select
             value={values.destination === "new_track" ? "new_track" : String(values.destination.trackId)}
@@ -342,7 +361,7 @@ export function GenerationControls({
 
       {/* Clip Count — hidden for Explore (always generates 3 candidates) */}
       {workflow !== "explore" && (
-        <ControlRow label="Clips">
+        <ControlRow label="Clips" tooltip="Number of clip variations to generate.">
           <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4].map((n) => (
               <button
@@ -372,7 +391,7 @@ export function GenerationControls({
         onCustomStyleChange={(style) => onChange("customStyleWorld", style)}
       />
 
-      {/* ── REFINEMENTS (expandable) ── */}
+      {/* ── REFINEMENTS (expandable, schema-driven) ── */}
       <button
         onClick={() => setShowRefinements(!showRefinements)}
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
@@ -386,31 +405,11 @@ export function GenerationControls({
 
       {showRefinements && (
         <div className="space-y-2.5 pl-1 border-l-2 border-border/50 ml-1">
-          <ControlRow label="Groove">
-            <ChipGroup options={GROOVE_OPTIONS} value={values.groove} onChange={(v) => onChange("groove", v)} />
-          </ControlRow>
-          <ControlRow label="Motion">
-            <ChipGroup options={MOTION_OPTIONS} value={values.motion} onChange={(v) => onChange("motion", v)} />
-          </ControlRow>
-          <ControlRow label="Voicing">
-            <ChipGroup options={VOICING_OPTIONS} value={values.voicing} onChange={(v) => onChange("voicing", v)} />
-          </ControlRow>
-          <ControlRow label="Phrase">
-            <ChipGroup options={PHRASE_OPTIONS} value={values.phraseBehavior} onChange={(v) => onChange("phraseBehavior", v)} />
-          </ControlRow>
-          <ControlRow label="Feel">
-            <ChipGroup options={FEEL_OPTIONS} value={values.feel} onChange={(v) => onChange("feel", v)} />
-          </ControlRow>
-          <ControlRow label="Density">
-            <ChipGroup options={DENSITY_OPTIONS} value={values.density} onChange={(v) => onChange("density", v)} />
-          </ControlRow>
-          <ControlRow label="Energy">
-            <ChipGroup options={ENERGY_OPTIONS} value={values.energy} onChange={(v) => onChange("energy", v)} />
-          </ControlRow>
+          <SchemaFields fields={refinementFields} values={values} onChange={onChange} />
         </div>
       )}
 
-      {/* ── ADVANCED (collapsed) ── */}
+      {/* ── ADVANCED (collapsed, schema-driven) ── */}
       <button
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full"
@@ -424,22 +423,7 @@ export function GenerationControls({
 
       {showAdvanced && (
         <div className="space-y-2.5 pl-1 border-l-2 border-border/50 ml-1">
-          <ControlRow label="Articulation">
-            <ChipGroup options={ARTICULATION_OPTIONS} value={values.articulation} onChange={(v) => onChange("articulation", v)} />
-          </ControlRow>
-          <ControlRow label="Brightness">
-            <ChipGroup options={BRIGHTNESS_OPTIONS} value={values.brightness} onChange={(v) => onChange("brightness", v)} />
-          </ControlRow>
-          <ControlRow label="Harmonic Tension">
-            <ChipGroup options={TENSION_OPTIONS} value={values.harmonicTension} onChange={(v) => onChange("harmonicTension", v)} />
-          </ControlRow>
-          <ControlRow label="Humanization">
-            <ChipGroup
-              options={HUMANIZE_PRESETS.map((h) => ({ value: h, label: h.charAt(0).toUpperCase() + h.slice(1) }))}
-              value={values.humanize}
-              onChange={(v) => onChange("humanize", v)}
-            />
-          </ControlRow>
+          <SchemaFields fields={advancedFields} values={values} onChange={onChange} />
         </div>
       )}
     </div>

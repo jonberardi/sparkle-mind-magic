@@ -166,9 +166,14 @@ export default function SongView() {
     const content = (text || input).trim();
     if (!content || isStreaming) return;
     addUserMessage(content);
+    // Read activeConversationId from the store at call time, NOT from the
+    // React hook closure. This prevents stale conversation IDs when handleSend
+    // is called from a setTimeout after startNewConversation() has already
+    // nullified the active conversation.
+    const freshConvId = useChatStore.getState().activeConversationId;
     send({
       type: "chat_message",
-      conversation_id: activeConversationId,
+      conversation_id: freshConvId,
       content,
       style_profile_id: activeProfileId || "default",
       workflow_context: useWorkflowStore.getState().getWorkflowContext(),
@@ -468,8 +473,17 @@ export default function SongView() {
         </div>
 
         {/* Right: Generation Panel — collapsible */}
+        {!wizardOpen && (
+          <button
+            onClick={() => setWizardOpen(true)}
+            className="shrink-0 flex items-center justify-center w-8 border-l border-border bg-card/30 hover:bg-muted/50 transition-colors group"
+            title="Open generation panel"
+          >
+            <PanelRightOpen size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+          </button>
+        )}
         {wizardOpen && (
-          <div className="w-[320px] border-l border-border bg-card/30 shrink-0 flex flex-col overflow-hidden">
+          <div className="w-[384px] border-l border-border bg-card/30 shrink-0 flex flex-col overflow-hidden">
             {/* Panel collapse toggle */}
             <div className="flex items-center justify-between px-4 py-1.5 border-b border-border/50 shrink-0">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Generate</span>
